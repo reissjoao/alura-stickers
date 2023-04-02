@@ -1,46 +1,35 @@
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.util.List;
-import java.util.Map;
 
 public class App {
 
     public static void main(String[] args) throws Exception {
-        
-        // Conexão HTTP e buscar os TOP 250 Filmes 
-        String url = "https://raw.githubusercontent.com/alura-cursos/imersao-java-2-api/main/TopMovies.json";
-        URI endereco = URI.create(url);
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder(endereco).GET().build();
-        HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-        String body = response.body();
 
-        // Pegar só os dados que interessam (Título, Poster, Classificação)
-        JsonParser parser = new JsonParser();
-        List<Map<String, String>> listaDeFilmes = parser.parse(body);      
+        API api = API.IMDB_TOP_SERIES;
 
-        // Exibir e manipular os dados 
-        for (Map<String,String> filme : listaDeFilmes) {
+        String url = api.getUrl();
+        ExtratorDeConteudo extrator = api.getExtrator();
 
-            String urlImagem = filme.get("image");
-            String titulo = filme.get("title");
-            
-            InputStream inputStream = new URL(urlImagem).openStream();
-            String nomeArquivo = "saida/" + titulo + ".png";
+        var http = new ClienteHttp();
+        String json = http.buscaDados(url);
 
-            var geradora = new GeradoraDeFigurinhas();
+        // exibir e manipular os dados 
+        List<Conteudo> conteudos = extrator.extraiConteudos(json);
+
+        var geradora = new GeradoraDeFigurinhas();
+
+        for (int i = 0; i < 3; i++) {
+
+            Conteudo conteudo = conteudos.get(i);
+
+            InputStream inputStream = new URL(conteudo.urlImagem()).openStream();
+            String nomeArquivo = "saida/" + conteudo.titulo() + ".png";
+
             geradora.cria(inputStream, nomeArquivo);
 
-            System.out.println("\u001b[1mTítulo:\u001b[m " + filme.get("title"));
-            System.out.println("URL da imagem: " + filme.get("image"));
-            System.out.println("\u001b[1mClassificação:\u001b[m " + filme.get("imDbRating"));
-            System.out.println("\u001b[1mRank:\u001b[m " + filme.get("rank"));
-            System.out.println();            
+            System.out.println(conteudo.titulo());
+            System.out.println();
         }
     }
 }
